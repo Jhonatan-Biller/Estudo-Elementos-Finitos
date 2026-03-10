@@ -1,6 +1,8 @@
 # Estudo-Elementos-Finitos
 Avaliação da disciplina de Elementos Finitos, com foco na resolução numérica de um problema de valor de contorno unidimensional pelo método dos elementos finitos.
 
+Professor: Jairo Valões Ramalho
+
 O trabalho envolve:
 - dedução da matriz elementar para elementos de Lagrange 1D de segunda ordem;
 - adaptação do código fornecido para resolver o problema
