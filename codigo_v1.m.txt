@@ -1,0 +1,96 @@
+% Atualizado em  12/02/2026
+%
+% Esse código resolve a equação diferencial
+%           -eps u''(x) = f(x)
+% sujeito às condições de contorno
+%           u(xg) = g % Condição de Dirichlet
+%           u'(xh) = h  % Condição de Neumman
+%
+%          Limitação desse código:  Nessa versão, supomos que uN = 0
+
+%Entrada de Dados
+eps=1;
+funf=@(x) sin(x); % Função f(x)
+g=[1];              % Condição de Dirichlet é um vetor com os valores no contorno g1, g2, etc. g=[g1,g2,g3,...] 
+
+mesh ='D:\aaJairo\a_Pesquisa_UFPel\Mestrado\MEFinitos\Turma_2025\malha_C_12_02_comp2'; 
+
+ordem=2; %Ordem dos elementos: 1 - Linear, 2 - Quadrático
+
+
+%%%%% Começa o programa
+
+% Roda a malha 
+run(mesh)
+
+% Coordenadas dos Nós
+cx=msh.POS(:,1);
+% Matriz de Conectividade
+switch ordem
+    case 1
+        conec = msh.LINES3;      %%% Precisa mudar no caso de ordem 2
+    case 2
+        conec = msh.LINES;
+end
+% Número de elementos
+nelem=size( conec,1);
+% Número de nós 
+nnos = msh.nbNod;
+% Determina quais são os nós qu tem condição de Dirichlet
+nos_g = msh.PNT(msh.PNT(:,2) == 1, 1);
+
+%Inicializa a matriz Global e vetor Força Global
+Kglob=zeros(nnos);
+Fglob=zeros(nnos,1);
+
+for e=1:nelem
+
+    % Tamanho do elemento
+    h= abs( cx( conec(e,2) ) - cx( conec(e,1) ) );
+
+    % Calcula as Matrizes Elementares e Termo de Fonte
+   [Kelem,Melem,Felem]=mat_elementar(ordem,eps,h,cx,conec,e,funf);
+    
+    % Montagem da Matriz Global usando a Conectividade
+    for i=1:ordem+1
+        a = conec(e,i) ;
+        for j=1:ordem+1
+            b = conec(e,j);           
+            Kglob( a, b) = Kglob( a, b ) +Kelem(i,j);
+            Fglob( a ) = Fglob( a ) + Melem(i,j)*Felem(j);
+        end        
+    end       
+    
+end
+
+
+Num_nos_g = length(nos_g);
+for j = 1:Num_nos_g
+
+    % Determina o número do nó conhecido (nó g) e o seu valor
+    no = nos_g(j);    
+    valor_g = g(j);   
+    
+    % Passa os valores conhecidos para o vetor Força    
+    for i=1:no-1
+        Fglob( i ) = Fglob (i) - Kglob(i,no)*valor_g;
+    end
+    for i=no+1:nnos
+        Fglob( i ) = Fglob (i) - Kglob(i,no)*valor_g;
+    end
+    
+    % Zera a linha e a coluna da matriz no nó conhecido    
+    Kglob(no,:) = 0;
+    Kglob(:,no) = 0;
+    Kglob(no,no) = 1;
+
+    % Coloca o valor correto no vetor Força
+    Fglob(no) = valor_g;
+end
+    
+% Soluçao
+sol=Kglob\Fglob;
+sol';
+
+[cx_ord, idx] =sort(cx);
+sol_ord=sol(idx);
